@@ -4,3 +4,4 @@ jinja2
 sqlmodel
 python-dotenv
 python-multipart
+pytest

@@ -60,6 +60,10 @@ Start the development server:
 uvicorn app.main:app --reload
 ```
 
+## Accessing the App
+
+👉 [http://127.0.0.1:8000](http://127.0.0.1:8000)
+
 # Screenshots
 
 ![](app/images/index.png)

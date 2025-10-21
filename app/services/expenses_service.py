@@ -2,7 +2,7 @@
 from sqlmodel import Session, select
 from app.models.model import Expense
 from app.services.db import engine
-from sqlalchemy import text
+from sqlalchemy import text, func, and_
 
 # Add new expense
 def add_expense(amount, category, date, description):
@@ -47,7 +47,7 @@ def get_filter_options():
         }
 
 def get_summary(year=None, month=None, day=None, category=None):
-    from sqlalchemy import func, and_
+
     with Session(engine) as session:
         filters = []
         if year:
@@ -59,15 +59,18 @@ def get_summary(year=None, month=None, day=None, category=None):
         if category:
             filters.append(func.lower(Expense.category) == category.lower())
 
-        query = session.query(Expense.category, func.sum(Expense.amount).label("total"))
-
+        # Updated query using SQLModel's select()
+        statement = select(
+            Expense.category, func.sum(Expense.amount).label("total")
+        )
         if filters:
-            query = query.filter(and_(*filters))
+            statement = statement.where(and_(*filters))
 
-        query = query.group_by(Expense.category)
-        results = query.all()
+        statement = statement.group_by(Expense.category)
+        results = session.exec(statement).all()
 
         by_category = {cat: total for cat, total in results}
         total = sum(by_category.values()) if by_category else 0
 
         return {"total": total, "by_category": by_category}
+
