@@ -59,3 +59,8 @@ Start the development server:
 ```bash
 uvicorn app.main:app --reload
 ```
+
+# Screenshots
+
+![](app/images/index.png)
+![](app/images/summary.png)
