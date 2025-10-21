@@ -15,7 +15,7 @@ test_engine = create_engine(TEST_DATABASE_URL, echo=False)
 @pytest.fixture(scope="module", autouse=True)
 def override_engine():
     SQLModel.metadata.create_all(test_engine)
-    service.engine = test_engine  # monkeypatch the engine
+    service.engine = test_engine  
     yield
 
 # Clear DB before each test

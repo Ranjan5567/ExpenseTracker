@@ -64,6 +64,12 @@ uvicorn app.main:app --reload
 
 👉 [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
+## Carrying Unit tests
+
+```bash
+pytest tests/test_expenses.py
+```
+
 # Screenshots
 
 ![](app/images/index.png)
