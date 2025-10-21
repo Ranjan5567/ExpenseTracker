@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Expense Summary</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+/>
+
+  </head>
+
+  <body>
+    
+    <!-- Back to Home Link with Icon -->
+    <a href="/" class="back-link">
+      <i class="fas fa-chevron-left"></i> Back to Home
+    </a>
+
+    <h1>Expense Summary</h1>
+
+    <!-- Filters Section -->
+    <div class="filters">
+      <label for="year">Year:</label>
+      <select id="year">
+        <option value="all">All</option>
+        {% for y in years %}
+          <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="month">Month:</label>
+      <select id="month">
+        <option value="all">All</option>
+        {% set month_names = ["January", "February", "March", "April", "May", "June", 
+                              "July", "August", "September", "October", "November", "December"] %}
+        {% for i in range(1, 13) %}
+          <option value="{{ i }}" {% if i == selected_month|int %}selected{% endif %}>
+            {{ month_names[i-1] }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <label for="day">Day:</label>
+      <select id="day">
+        <option value="all">All</option>
+        {% for d in range(1, 32) %}
+          <option value="{{ d }}" {% if d == selected_day|int %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="category">Category:</label>
+      <select id="category">
+        <option value="all">All</option>
+        {% for cat in categories %}
+          <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="chartType">Chart Type:</label>
+      <select id="chartType">
+        <option value="bar">Bar</option>
+        <option value="pie">Pie</option>
+        <option value="line">Line</option>
+      </select>
+
+      <button id="applyFilters">Apply Filters</button>
+    </div>
+
+
+    <!-- Total Spend Card -->
+    <div class="summary-section">
+      <div class="summary-card total-spend">
+        <h2>Total Spend</h2>
+        <p class="total-amount">₹{{ summary.total }}</p>
+      </div>
+    </div>
+
+    <!-- Placeholder for no data -->
+    <div
+      id="noDataMessage"
+      style="display:none; text-align:center; margin: 20px; font-weight: bold;"
+    >
+      No expense data to display for the selected filters.
+    </div>
+
+    <!-- Wrap chart and category sections to toggle visibility -->
+    <div id="summaryContent">
+      <!-- Chart Section -->
+      <div class="chart-section">
+        <canvas id="expenseChart"></canvas>
+      </div>
+
+      <!-- Category Breakdown -->
+      <div class="category-section">
+        <h2>Category-wise Breakdown</h2>
+        <div class="category-cards">
+          {% for cat, amt in summary.by_category.items() %}
+          <div class="category-card">
+            <h3>{{ cat }}</h3>
+            <p>₹{{ amt }}</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Expense Data for Chart -->
+    <script id="allExpensesData" type="application/json">
+      {{ expenses | tojson }}
+    </script>
+
+    <!-- Chart and Filters Logic -->
+    <script>
+  const ctx = document.getElementById("expenseChart").getContext("2d");
+
+  const allExpenses = JSON.parse(
+    document.getElementById("allExpensesData").textContent || "[]"
+  );
+
+  let currentChartType = "bar";
+
+  // Helper Functions
+  function getFilteredExpenses(year, month, day, category) {
+    return allExpenses.filter((e) => {
+      const date = new Date(e.date);
+
+      if (year !== "all" && date.getFullYear() !== parseInt(year)) return false;
+      if (month !== "all" && date.getMonth() + 1 !== parseInt(month)) return false;
+      if (day !== "all" && date.getDate() !== parseInt(day)) return false;
+      if (category !== "all" && e.category !== category) return false;
+
+      return true;
+    });
+  }
+
+  function aggregateByCategory(expenses) {
+    const byCat = {};
+    expenses.forEach((e) => {
+      byCat[e.category] = (byCat[e.category] || 0) + e.amount;
+    });
+    return byCat;
+  }
+
+  function updateTotalSpend(expenses) {
+    const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+    document.querySelector(".total-amount").textContent = `₹ ${total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  }
+
+  function updateCategoryBreakdown(byCategory) {
+    const container = document.querySelector(".category-cards");
+    container.innerHTML = "";
+
+    if (Object.keys(byCategory).length === 0) {
+      container.innerHTML = `<p id="noDataMessage">No expenses found for the selected filters.</p>`;
+      return;
+    }
+
+    for (const [cat, amt] of Object.entries(byCategory)) {
+      const div = document.createElement("div");
+      div.className = "category-card";
+      div.innerHTML = `<h3>${cat}</h3><p>₹ ${amt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>`;
+      container.appendChild(div);
+    }
+  }
+
+  function updateChart(byCategory) {
+  const chartSection = document.querySelector(".chart-section");
+
+  const categories = Object.keys(byCategory);
+  const amounts = Object.values(byCategory);
+
+  // If no data, hide chart
+  if (categories.length === 0) {
+    chartSection.style.display = "none";
+    return;
+  } else {
+    chartSection.style.display = "block";
+  }
+
+  // Otherwise, show chart
+  expenseChart.data.labels = categories;
+  expenseChart.data.datasets[0].data = amounts;
+  expenseChart.update();
+}
+
+
+  // Initial chart
+  let expenseChart = new Chart(ctx, {
+    type: currentChartType,
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "Expenses by Category",
+          data: [],
+          backgroundColor: [
+            "#1E3A8A", "#3B82F6", "#60A5FA", "#93C5FD", "#BFDBFE",
+          ],
+          borderColor: "#1E3A8A",
+          borderWidth: 1.2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
+        title: { display: true, text: "Expenses Breakdown" },
+      },
+    },
+  });
+
+  // Apply Filters Button Click
+  document.getElementById("applyFilters").addEventListener("click", () => {
+    const year = document.getElementById("year").value;
+    const month = document.getElementById("month").value;
+    const day = document.getElementById("day").value;
+    const category = document.getElementById("category").value;
+    const chartType = document.getElementById("chartType").value;
+
+    // Destroy and recreate chart with selected type
+    expenseChart.destroy();
+    currentChartType = chartType;
+    expenseChart = new Chart(ctx, {
+      type: currentChartType,
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Expenses by Category",
+            data: [],
+            backgroundColor: [
+              "#1E3A8A", "#3B82F6", "#60A5FA", "#93C5FD", "#BFDBFE",
+            ],
+            borderColor: "#1E3A8A",
+            borderWidth: 1.2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "top" },
+          title: { display: true, text: "Expenses Breakdown" },
+        },
+      },
+    });
+
+    // Get filtered data and update everything
+    const filtered = getFilteredExpenses(year, month, day, category);
+    const byCategoryFiltered = aggregateByCategory(filtered);
+
+    updateTotalSpend(filtered);
+    updateCategoryBreakdown(byCategoryFiltered);
+    updateChart(byCategoryFiltered);
+  });
+    // Apply default filters and render bar chart on first load
+  window.addEventListener("DOMContentLoaded", () => {
+    const year = document.getElementById("year").value;
+    const month = document.getElementById("month").value;
+    const day = document.getElementById("day").value;
+    const category = document.getElementById("category").value;
+
+    const filtered = getFilteredExpenses(year, month, day, category);
+    const byCategoryFiltered = aggregateByCategory(filtered);
+
+    updateTotalSpend(filtered);
+    updateCategoryBreakdown(byCategoryFiltered);
+    updateChart(byCategoryFiltered);
+  });
+</script>
+
+  </body>
+</html>

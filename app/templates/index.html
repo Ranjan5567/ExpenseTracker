@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Expense Tracker</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <h1>Expense Tracker</h1>
+
+    <!-- Add Expense Form -->
+    <form action="/add_expense" method="post">
+      <input
+        type="number"
+        step="0.01"
+        name="amount"
+        placeholder="Amount"
+        required
+      />
+      <input type="text" name="category" placeholder="Category" required />
+      <input type="date" name="date" required />
+      <input type="text" name="description" placeholder="Description" />
+      <button type="submit">Add Expense</button>
+    </form>
+
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 960px;
+        margin: 0 auto 20px;
+      "
+    >
+      <h2>All Expenses</h2>
+      <a
+        href="/export"
+        class="export-btn"
+        title="Download CSV"
+        aria-label="Download CSV"
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: #1e40af;
+          color: white;
+          padding: 10px 15px;
+          border-radius: 8px;
+          text-decoration: none;
+          font-weight: 600;
+        "
+      >
+        <i
+          class="fas fa-download"
+          style="font-size: 18px; margin-right: 8px"
+        ></i>
+        Export CSV
+      </a>
+    </div>
+    <table border="1">
+      <tr>
+        <th>Amount</th>
+        <th>Category</th>
+        <th>Date</th>
+        <th>Description</th>
+      </tr>
+      {% if expenses %} {% for e in expenses %}
+      <tr>
+        <td>₹ {{ "{:,.2f}".format(e.amount) }}</td>
+        <td>{{ e.category }}</td>
+        <td>{{ e.date }}</td>
+        <td>{{ e.description or 'N/A' }}</td>
+      </tr>
+      {% endfor %} {% else %}
+      <tr>
+        <td colspan="4" style="text-align: center; padding: 10px">
+          No expenses recorded yet.
+        </td>
+      </tr>
+      {% endif %}
+    </table>
+
+    <a href="/summary">View Summary</a>
+  </body>
+</html>
