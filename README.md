@@ -21,7 +21,7 @@ A modern, responsive web-based **Expense Tracker** that helps you record, view, 
 ### 1. Clone the Repository
 
 ```bash
-git clone
+git clone https://github.com/Ranjan5567/ExpenseTracker.git
 cd expense-tracker
 ```
 
